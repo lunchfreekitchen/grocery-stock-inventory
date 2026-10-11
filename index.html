@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Inventory & Sales Tracker</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for table containers */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="h-full text-slate-800 flex flex-col md:flex-row antialiased bg-slate-50">
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-full md:w-64 bg-slate-900 text-slate-300 flex-shrink-0 flex flex-col justify-between border-r border-slate-800">
+        <div>
+            <!-- App Brand -->
+            <div class="p-5 flex items-center gap-3 border-b border-slate-800">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-sky-500/20">
+                    <i data-lucide="boxes" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-white text-base tracking-tight leading-none">StockFlow</h1>
+                    <span class="text-xs text-slate-400">Inventory & Profits</span>
+                </div>
+            </div>
+
+            <!-- Nav Links -->
+            <nav class="p-4 space-y-1">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 bg-sky-600 text-white shadow-md shadow-sky-600/20">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                    Dashboard
+                </button>
+                <button onclick="switchTab('products')" id="nav-products" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 hover:bg-slate-800 hover:text-white text-slate-400">
+                    <i data-lucide="package" class="w-4 h-4"></i>
+                    Procurement & Stock
+                </button>
+                <button onclick="switchTab('operations')" id="nav-operations" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 hover:bg-slate-800 hover:text-white text-slate-400">
+                    <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                    Sales & Waste Log
+                </button>
+            </nav>
+        </div>
+
+        <!-- Sidebar Footer Action -->
+        <div class="p-4 border-t border-slate-800 space-y-2">
+            <button onclick="openModal('quickLogModal')" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                Quick Log Sale / Waste
+            </button>
+            <button onclick="resetToSampleData()" class="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-slate-500 hover:text-slate-300 text-xs transition-colors">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                Reset Demo Data
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        <!-- Top App Header -->
+        <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sticky top-0 z-10 shadow-sm">
+            <div>
+                <h2 id="page-title" class="text-xl font-bold text-slate-900 tracking-tight">Dashboard Overview</h2>
+                <p id="page-subtitle" class="text-xs text-slate-500">Real-time stats on stock level, sales revenue, and markup profits.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="bg-slate-100 p-1.5 rounded-xl flex items-center border border-slate-200 text-xs text-slate-600">
+                    <span class="px-2.5 py-1 font-semibold text-slate-700">Currency:</span>
+                    <span class="bg-white px-2 py-0.5 rounded-lg font-bold text-slate-900 shadow-xs">PHP (₱)</span>
+                </div>
+                <button onclick="openModal('productModal')" class="flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-medium shadow-sm transition-all">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    Add Product
+                </button>
+            </div>
+        </header>
+
+        <div class="p-6 space-y-6 flex-1">
+
+            <!-- TAB 1: DASHBOARD VIEW -->
+            <section id="tab-dashboard" class="space-y-6">
+                <!-- Summary KPI Cards Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Total Inventory Count -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Stock Remaining</span>
+                            <div class="p-2 rounded-xl bg-blue-50 text-blue-600">
+                                <i data-lucide="layers" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <div id="kpi-remaining-units" class="text-2xl font-bold text-slate-900">0 units</div>
+                            <p class="text-xs text-slate-500 mt-1"><span id="kpi-low-stock-count" class="font-semibold text-amber-600">0</span> items low in stock</p>
+                        </div>
+                    </div>
+
+                    <!-- Gross Profit KPI -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Gross Profit (Markup)</span>
+                            <div class="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+                                <i data-lucide="trending-up" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <div id="kpi-gross-profit" class="text-2xl font-bold text-emerald-600">₱0.00</div>
+                            <p class="text-xs text-slate-500 mt-1">From <span id="kpi-sold-count" class="font-semibold text-slate-700">0</span> items sold</p>
+                        </div>
+                    </div>
+
+                    <!-- Revenue vs COGS -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Sales Revenue</span>
+                            <div class="p-2 rounded-xl bg-violet-50 text-violet-600">
+                                <i data-lucide="banknote" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <div id="kpi-total-revenue" class="text-2xl font-bold text-slate-900">₱0.00</div>
+                            <p class="text-xs text-slate-500 mt-1">Cost of Goods: <span id="kpi-cogs" class="font-medium">₱0.00</span></p>
+                        </div>
+                    </div>
+
+                    <!-- Waste KPI -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Waste / Loss</span>
+                            <div class="p-2 rounded-xl bg-rose-50 text-rose-600">
+                                <i data-lucide="trash-2" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <div id="kpi-waste-cost" class="text-2xl font-bold text-rose-600">₱0.00</div>
+                            <p class="text-xs text-slate-500 mt-1"><span id="kpi-waste-count" class="font-semibold text-rose-600">0</span> items expired/damaged</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Secondary Value Bar -->
+                <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-sky-900 text-white rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="p-3 bg-white/10 rounded-xl backdrop-blur-md">
+                            <i data-lucide="vault" class="w-6 h-6 text-sky-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-sm text-slate-200">Current Inventory Asset Valuation</h3>
+                            <p class="text-xs text-slate-400">Total worth of products sitting on shelves right now.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <div>
+                            <span class="text-xs text-slate-400 block">Total Cost Value</span>
+                            <span id="kpi-asset-cost" class="text-lg font-bold text-slate-100">₱0.00</span>
+                        </div>
+                        <div class="h-8 w-px bg-slate-700"></div>
+                        <div>
+                            <span class="text-xs text-sky-300 block">Expected Retail Value</span>
+                            <span id="kpi-asset-retail" class="text-lg font-bold text-sky-400">₱0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visual Charts Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Profit by Category -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-bold text-slate-800">Profit by Category</h3>
+                            <span class="text-xs text-slate-400">Markup earnings</span>
+                        </div>
+                        <div class="relative h-64 w-full flex items-center justify-center">
+                            <canvas id="categoryProfitChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Sold vs Wasted Ratio -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-bold text-slate-800">Sales vs. Waste (Units)</h3>
+                            <span class="text-xs text-slate-400">Operational performance</span>
+                        </div>
+                        <div class="relative h-64 w-full flex items-center justify-center">
+                            <canvas id="salesWasteChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Top Selling Items Bar Chart -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-bold text-slate-800">Top Performing Products</h3>
+                            <span class="text-xs text-slate-400">By quantity sold</span>
+                        </div>
+                        <div class="relative h-64 w-full flex items-center justify-center">
+                            <canvas id="topProductsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: PROCUREMENT & PRODUCTS -->
+            <section id="tab-products" class="hidden space-y-6">
+                <!-- Header Filters & Add Actions -->
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+                    <div class="flex flex-1 items-center gap-3">
+                        <div class="relative flex-1 max-w-xs">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="productSearch" oninput="renderProductsTable()" placeholder="Search product..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-800">
+                        </div>
+                        <select id="categoryFilter" onchange="renderProductsTable()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-700 font-medium">
+                            <option value="ALL">All Categories</option>
+                            <option value="Drinks">Drinks</option>
+                            <option value="Chips">Chips</option>
+                            <option value="Candies">Candies</option>
+                            <option value="Chocolates">Chocolates</option>
+                            <option value="Custom">Custom / Others</option>
+                        </select>
+                    </div>
+
+                    <button onclick="openModal('productModal')" class="flex items-center justify-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                        Procure New Item
+                    </button>
+                </div>
+
+                <!-- Product Table -->
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                    <th class="p-4">Product Name</th>
+                                    <th class="p-4">Category</th>
+                                    <th class="p-4 text-center">Stock Level</th>
+                                    <th class="p-4 text-right">Cost Price</th>
+                                    <th class="p-4 text-right">Markup / Unit</th>
+                                    <th class="p-4 text-right">Selling Price</th>
+                                    <th class="p-4 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productsTableBody" class="divide-y divide-slate-100 text-xs">
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: SALES & WASTE LOGS -->
+            <section id="tab-operations" class="hidden space-y-6">
+                <!-- Log Entry Header Bar -->
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+                    <div class="flex flex-1 items-center gap-3">
+                        <div class="relative flex-1 max-w-xs">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="logSearch" oninput="renderLogsTable()" placeholder="Search item in logs..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-800">
+                        </div>
+                        <select id="logTypeFilter" onchange="renderLogsTable()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-700 font-medium">
+                            <option value="ALL">All Types (Sold & Waste)</option>
+                            <option value="SOLD">Sold Only</option>
+                            <option value="WASTE">Waste Only</option>
+                        </select>
+                    </div>
+
+                    <button onclick="openModal('quickLogModal')" class="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors">
+                        <i data-lucide="clipboard-pen" class="w-4 h-4"></i>
+                        Record Transaction
+                    </button>
+                </div>
+
+                <!-- Logs Table -->
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                    <th class="p-4">Date & Time</th>
+                                    <th class="p-4">Product Name</th>
+                                    <th class="p-4 text-center">Type</th>
+                                    <th class="p-4 text-center">Qty</th>
+                                    <th class="p-4 text-right">Unit Price</th>
+                                    <th class="p-4 text-right">Total Financial Effect</th>
+                                    <th class="p-4 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logsTableBody" class="divide-y divide-slate-100 text-xs">
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- MODAL 1: ADD / EDIT PRODUCT -->
+    <div id="productModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-xl overflow-hidden transform transition-all">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+                <h3 id="productModalTitle" class="font-bold text-sm">Procure / Add New Product</h3>
+                <button onclick="closeModal('productModal')" class="text-slate-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="productForm" onsubmit="handleSaveProduct(event)" class="p-6 space-y-4">
+                <input type="hidden" id="productId">
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Product Name</label>
+                    <input type="text" id="prodName" required placeholder="e.g. Coca-Cola 330ml Can" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Category</label>
+                        <select id="prodCategory" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <option value="Drinks">Drinks</option>
+                            <option value="Chips">Chips</option>
+                            <option value="Candies">Candies</option>
+                            <option value="Chocolates">Chocolates</option>
+                            <option value="Custom">Custom / Snacks</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Procured Stock Qty</label>
+                        <input type="number" id="prodStock" min="0" required placeholder="e.g. 50" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                    <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Pricing & Markup Logic</h4>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Cost Price (₱)</label>
+                            <input type="number" id="prodCost" step="0.01" min="0" required oninput="calculateSellingPrice()" placeholder="20.00" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Markup Type</label>
+                            <select id="markupType" onchange="calculateSellingPrice()" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                                <option value="amount">Fixed Amount (₱)</option>
+                                <option value="percent">Percentage (%)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Markup Value</label>
+                            <input type="number" id="markupValue" step="0.01" min="0" required oninput="calculateSellingPrice()" placeholder="5.00" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-sky-700 mb-1">Final Selling Price (₱)</label>
+                            <input type="number" id="prodSelling" step="0.01" min="0" required oninput="handleManualSellingOverride()" placeholder="25.00" class="w-full px-3 py-2 border border-sky-300 bg-sky-50/50 rounded-xl text-xs font-bold text-sky-900 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-slate-500 italic">Changing Selling Price directly will dynamically readjust the markup amount.</p>
+                </div>
+
+                <div class="pt-2 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('productModal')" class="px-4 py-2 border border-slate-300 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-semibold shadow-xs">Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: LOG SALE / WASTE -->
+    <div id="quickLogModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-xl overflow-hidden">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+                <h3 class="font-bold text-sm">Log Sales or Waste/Loss</h3>
+                <button onclick="closeModal('quickLogModal')" class="text-slate-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="logForm" onsubmit="handleSaveLog(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Select Product</label>
+                    <select id="logProductId" required onchange="updateLogModalMaxStock()" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                        <!-- JS populated -->
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Action Type</label>
+                        <select id="logType" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <option value="SOLD">🛒 Sold / Sale</option>
+                            <option value="WASTE">🗑️ Waste / Expired / Damaged</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Quantity</label>
+                        <input type="number" id="logQty" min="1" value="1" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                        <span id="logStockHint" class="text-[10px] text-slate-500 mt-1 block">Max available stock: 0</span>
+                    </div>
+                </div>
+
+                <div class="pt-2 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('quickLogModal')" class="px-4 py-2 border border-slate-300 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-xs">Log Action</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: RESTOCK PRODUCT -->
+    <div id="restockModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl max-w-sm w-full shadow-xl overflow-hidden">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+                <h3 class="font-bold text-sm">Add Stock Procurement</h3>
+                <button onclick="closeModal('restockModal')" class="text-slate-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="restockForm" onsubmit="handleSaveRestock(event)" class="p-6 space-y-4">
+                <input type="hidden" id="restockProductId">
+                <div>
+                    <span class="text-xs text-slate-500 block">Product:</span>
+                    <h4 id="restockProdName" class="font-bold text-sm text-slate-800">Product Name</h4>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Additional Quantity Procured</label>
+                    <input type="number" id="restockQty" min="1" required placeholder="e.g. 24" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                </div>
+                <div class="pt-2 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('restockModal')" class="px-4 py-2 border border-slate-300 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-semibold shadow-xs">Add Stock</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Notification Box -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-800 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <i id="toastIcon" data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i>
+        <span id="toastMsg" class="text-xs font-medium">Action performed successfully</span>
+    </div>
+
+    <script>
+        // Data Structures & Storage Keys
+        const STORAGE_KEY_PRODUCTS = 'stockflow_products_v1';
+        const STORAGE_KEY_LOGS = 'stockflow_logs_v1';
+
+        // Pre-populated Sample Data for instant vibrant visual rendering
+        const SAMPLE_PRODUCTS = [
+            { id: '1', name: 'Coca-Cola 330ml Can', category: 'Drinks', stock: 48, costPrice: 22.00, sellingPrice: 30.00 },
+            { id: '2', name: 'San Miguel Pale Pilsen', category: 'Drinks', stock: 18, costPrice: 45.00, sellingPrice: 60.00 },
+            { id: '3', name: 'Piattos Cheese Large 85g', category: 'Chips', stock: 8, costPrice: 32.50, sellingPrice: 42.00 },
+            { id: '4', name: 'Nova Country Cheddar 78g', category: 'Chips', stock: 15, costPrice: 30.00, sellingPrice: 38.00 },
+            { id: '5', name: 'Maxx Menthol Candy (Pack of 50)', category: 'Candies', stock: 5, costPrice: 40.00, sellingPrice: 60.00 },
+            { id: '6', name: 'Mentos Mint Roll', category: 'Candies', stock: 25, costPrice: 12.00, sellingPrice: 18.00 },
+            { id: '7', name: 'Goya Milk Chocolate Bar 35g', category: 'Chocolates', stock: 3, costPrice: 22.00, sellingPrice: 30.00 },
+            { id: '8', name: 'Toblerone Milk Chocolate 100g', category: 'Chocolates', stock: 12, costPrice: 85.00, sellingPrice: 115.00 }
+        ];
+
+        const SAMPLE_LOGS = [
+            { id: 'l1', productId: '1', productName: 'Coca-Cola 330ml Can', category: 'Drinks', type: 'SOLD', qty: 12, costPrice: 22.00, sellingPrice: 30.00, timestamp: new Date(Date.now() - 3600000 * 2).toISOString() },
+            { id: 'l2', productId: '3', productName: 'Piattos Cheese Large 85g', category: 'Chips', type: 'SOLD', qty: 6, costPrice: 32.50, sellingPrice: 42.00, timestamp: new Date(Date.now() - 3600000 * 5).toISOString() },
+            { id: 'l3', productId: '5', productName: 'Maxx Menthol Candy (Pack of 50)', category: 'Candies', type: 'WASTE', qty: 1, costPrice: 40.00, sellingPrice: 60.00, timestamp: new Date(Date.now() - 3600000 * 24).toISOString() },
+            { id: 'l4', productId: '7', productName: 'Goya Milk Chocolate Bar 35g', category: 'Chocolates', type: 'SOLD', qty: 7, costPrice: 22.00, sellingPrice: 30.00, timestamp: new Date(Date.now() - 3600000 * 12).toISOString() },
+            { id: 'l5', productId: '2', productName: 'San Miguel Pale Pilsen', category: 'Drinks', type: 'SOLD', qty: 6, costPrice: 45.00, sellingPrice: 60.00, timestamp: new Date(Date.now() - 3600000 * 18).toISOString() }
+        ];
+
+        let products = [];
+        let logs = [];
+        let chartCategoryProfit = null;
+        let chartSalesWaste = null;
+        let chartTopProducts = null;
+
+        // Initialize Application
+        window.onload = function() {
+            lucide.createIcons();
+            loadState();
+            renderDashboard();
+            renderProductsTable();
+            renderLogsTable();
+            setupCharts();
+        };
+
+        // LocalStorage Load & Save
+        function loadState() {
+            const storedProds = localStorage.getItem(STORAGE_KEY_PRODUCTS);
+            const storedLogs = localStorage.getItem(STORAGE_KEY_LOGS);
+
+            if (storedProds && storedLogs) {
+                products = JSON.parse(storedProds);
+                logs = JSON.parse(storedLogs);
+            } else {
+                // Pre-populate with realistic defaults
+                products = [...SAMPLE_PRODUCTS];
+                logs = [...SAMPLE_LOGS];
+                saveState();
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem(STORAGE_KEY_PRODUCTS, JSON.stringify(products));
+            localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs));
+        }
+
+        function resetToSampleData() {
+            products = [...SAMPLE_PRODUCTS];
+            logs = [...SAMPLE_LOGS];
+            saveState();
+            refreshUI();
+            showToast('Reset data to initial sample defaults!');
+        }
+
+        // Tab Navigation Logic
+        function switchTab(tabId) {
+            document.querySelectorAll('section[id^="tab-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.className = "nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 hover:bg-slate-800 hover:text-white text-slate-400";
+            });
+
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            activeBtn.className = "nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 bg-sky-600 text-white shadow-md shadow-sky-600/20";
+
+            const titles = {
+                'dashboard': ['Dashboard Overview', 'Real-time stats on stock level, sales revenue, and markup profits.'],
+                'products': ['Procurement & Product Directory', 'Manage product cost prices, custom markups, and restock levels.'],
+                'operations': ['Sales & Waste Log Tracker', 'Audit daily sold items or damaged/expired goods.']
+            };
+
+            document.getElementById('page-title').innerText = titles[tabId][0];
+            document.getElementById('page-subtitle').innerText = titles[tabId][1];
+
+            refreshUI();
+        }
+
+        // KPI Calculations & Dashboard Rendering
+        function renderDashboard() {
+            const totalRemainingUnits = products.reduce((acc, p) => acc + p.stock, 0);
+            const lowStockProducts = products.filter(p => p.stock <= 10);
+            
+            let totalSoldQty = 0;
+            let totalWasteQty = 0;
+            let totalRevenue = 0;
+            let totalCOGS = 0;
+            let totalGrossProfit = 0;
+            let totalWasteCost = 0;
+
+            logs.forEach(log => {
+                if (log.type === 'SOLD') {
+                    totalSoldQty += log.qty;
+                    const rev = log.qty * log.sellingPrice;
+                    const cogs = log.qty * log.costPrice;
+                    totalRevenue += rev;
+                    totalCOGS += cogs;
+                    totalGrossProfit += (rev - cogs);
+                } else if (log.type === 'WASTE') {
+                    totalWasteQty += log.qty;
+                    totalWasteCost += (log.qty * log.costPrice);
+                }
+            });
+
+            const totalAssetCost = products.reduce((acc, p) => acc + (p.stock * p.costPrice), 0);
+            const totalAssetRetail = products.reduce((acc, p) => acc + (p.stock * p.sellingPrice), 0);
+
+            // Populate UI Elements
+            document.getElementById('kpi-remaining-units').innerText = `${totalRemainingUnits.toLocaleString()} units`;
+            document.getElementById('kpi-low-stock-count').innerText = lowStockProducts.length;
+            
+            document.getElementById('kpi-gross-profit').innerText = formatPHP(totalGrossProfit);
+            document.getElementById('kpi-sold-count').innerText = totalSoldQty;
+
+            document.getElementById('kpi-total-revenue').innerText = formatPHP(totalRevenue);
+            document.getElementById('kpi-cogs').innerText = formatPHP(totalCOGS);
+
+            document.getElementById('kpi-waste-cost').innerText = formatPHP(totalWasteCost);
+            document.getElementById('kpi-waste-count').innerText = totalWasteQty;
+
+            document.getElementById('kpi-asset-cost').innerText = formatPHP(totalAssetCost);
+            document.getElementById('kpi-asset-retail').innerText = formatPHP(totalAssetRetail);
+
+            updateCharts(totalSoldQty, totalWasteQty);
+        }
+
+        // Chart.js Setup & Dynamic Updates
+        function setupCharts() {
+            const ctxCategory = document.getElementById('categoryProfitChart').getContext('2d');
+            const ctxSalesWaste = document.getElementById('salesWasteChart').getContext('2d');
+            const ctxTopProducts = document.getElementById('topProductsChart').getContext('2d');
+
+            chartCategoryProfit = new Chart(ctxCategory, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Drinks', 'Chips', 'Candies', 'Chocolates', 'Others'],
+                    datasets: [{
+                        data: [0, 0, 0, 0, 0],
+                        backgroundColor: ['#0284c7', '#f59e0b', '#ec4899', '#8b5cf6', '#64748b']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }
+                }
+            });
+
+            chartSalesWaste = new Chart(ctxSalesWaste, {
+                type: 'pie',
+                data: {
+                    labels: ['Sold (Units)', 'Wasted (Units)'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['#10b981', '#f43f5e']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }
+                }
+            });
+
+            chartTopProducts = new Chart(ctxTopProducts, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Units Sold',
+                        data: [],
+                        backgroundColor: '#0284c7',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function updateCharts(totalSoldUnits, totalWasteUnits) {
+            if (!chartCategoryProfit) return;
+
+            // 1. Profit by Category
+            const categories = ['Drinks', 'Chips', 'Candies', 'Chocolates', 'Custom'];
+            const categoryProfits = { Drinks: 0, Chips: 0, Candies: 0, Chocolates: 0, Custom: 0 };
+
+            logs.filter(l => l.type === 'SOLD').forEach(log => {
+                const profit = (log.sellingPrice - log.costPrice) * log.qty;
+                const cat = categories.includes(log.category) ? log.category : 'Custom';
+                categoryProfits[cat] += profit;
+            });
+
+            chartCategoryProfit.data.datasets[0].data = Object.values(categoryProfits);
+            chartCategoryProfit.update();
+
+            // 2. Sales vs Waste Ratio
+            chartSalesWaste.data.datasets[0].data = [totalSoldUnits, totalWasteUnits];
+            chartSalesWaste.update();
+
+            // 3. Top Products
+            const productSales = {};
+            logs.filter(l => l.type === 'SOLD').forEach(l => {
+                productSales[l.productName] = (productSales[l.productName] || 0) + l.qty;
+            });
+
+            const sortedProds = Object.entries(productSales)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+
+            chartTopProducts.data.labels = sortedProds.map(p => p[0].length > 12 ? p[0].substring(0, 12) + '...' : p[0]);
+            chartTopProducts.data.datasets[0].data = sortedProds.map(p => p[1]);
+            chartTopProducts.update();
+        }
+
+        // Render Product Table
+        function renderProductsTable() {
+            const tbody = document.getElementById('productsTableBody');
+            const search = document.getElementById('productSearch').value.toLowerCase();
+            const catFilter = document.getElementById('categoryFilter').value;
+
+            const filtered = products.filter(p => {
+                const matchesSearch = p.name.toLowerCase().includes(search);
+                const matchesCat = catFilter === 'ALL' || p.category === catFilter;
+                return matchesSearch && matchesCat;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">No products found matching your search.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(p => {
+                const markupPerUnit = p.sellingPrice - p.costPrice;
+                const marginPercent = p.costPrice > 0 ? ((markupPerUnit / p.costPrice) * 100).toFixed(1) : '0';
+                
+                // Status Badge
+                let stockBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">${p.stock} units</span>`;
+                if (p.stock === 0) {
+                    stockBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">Out of Stock</span>`;
+                } else if (p.stock <= 10) {
+                    stockBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">Low Stock (${p.stock})</span>`;
+                }
+
+                return `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-4 font-semibold text-slate-800">${escapeHtml(p.name)}</td>
+                        <td class="p-4">
+                            <span class="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">${p.category}</span>
+                        </td>
+                        <td class="p-4 text-center">${stockBadge}</td>
+                        <td class="p-4 text-right text-slate-600 font-mono">${formatPHP(p.costPrice)}</td>
+                        <td class="p-4 text-right text-emerald-600 font-mono font-medium">+${formatPHP(markupPerUnit)} <span class="text-[10px] text-emerald-500">(${marginPercent}%)</span></td>
+                        <td class="p-4 text-right text-slate-900 font-bold font-mono">${formatPHP(p.sellingPrice)}</td>
+                        <td class="p-4 text-center">
+                            <div class="flex items-center justify-center gap-1">
+                                <button onclick="openRestockModal('${p.id}')" title="Procure / Add Stock" class="p-1.5 text-sky-600 hover:bg-sky-50 rounded-lg transition-colors">
+                                    <i data-lucide="plus-square" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="openQuickLogForProduct('${p.id}')" title="Log Sale or Waste" class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
+                                    <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="openEditProductModal('${p.id}')" title="Edit Product" class="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="deleteProduct('${p.id}')" title="Delete Product" class="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        // Render Operations/Logs Table
+        function renderLogsTable() {
+            const tbody = document.getElementById('logsTableBody');
+            const search = document.getElementById('logSearch').value.toLowerCase();
+            const typeFilter = document.getElementById('logTypeFilter').value;
+
+            const filtered = logs.filter(l => {
+                const matchesSearch = l.productName.toLowerCase().includes(search);
+                const matchesType = typeFilter === 'ALL' || l.type === typeFilter;
+                return matchesSearch && matchesType;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">No sales or waste logs found.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(l => {
+                const formattedDate = new Date(l.timestamp).toLocaleString('en-PH', { dateStyle: 'short', timeStyle: 'short' });
+                
+                let typeBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">SOLD</span>`;
+                let financialEffect = `<span class="text-emerald-600 font-bold font-mono">+${formatPHP(l.qty * l.sellingPrice)}</span>`;
+
+                if (l.type === 'WASTE') {
+                    typeBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">WASTE / LOSS</span>`;
+                    financialEffect = `<span class="text-rose-600 font-bold font-mono">-${formatPHP(l.qty * l.costPrice)}</span>`;
+                }
+
+                return `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-4 text-slate-500 font-mono text-[11px]">${formattedDate}</td>
+                        <td class="p-4 font-semibold text-slate-800">${escapeHtml(l.productName)}</td>
+                        <td class="p-4 text-center">${typeBadge}</td>
+                        <td class="p-4 text-center font-bold text-slate-700">${l.qty}</td>
+                        <td class="p-4 text-right text-slate-600 font-mono">${formatPHP(l.type === 'SOLD' ? l.sellingPrice : l.costPrice)}</td>
+                        <td class="p-4 text-right">${financialEffect}</td>
+                        <td class="p-4 text-center">
+                            <button onclick="deleteLog('${l.id}')" title="Undo / Delete Log" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition-colors">
+                                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        // Auto-calculate selling price based on Markup Amount / %
+        function calculateSellingPrice() {
+            const cost = parseFloat(document.getElementById('prodCost').value) || 0;
+            const markupVal = parseFloat(document.getElementById('markupValue').value) || 0;
+            const markupType = document.getElementById('markupType').value;
+
+            let sellingPrice = cost;
+            if (markupType === 'amount') {
+                sellingPrice = cost + markupVal;
+            } else {
+                sellingPrice = cost + (cost * (markupVal / 100));
+            }
+
+            document.getElementById('prodSelling').value = sellingPrice.toFixed(2);
+        }
+
+        // Handle direct manual selling price override
+        function handleManualSellingOverride() {
+            const cost = parseFloat(document.getElementById('prodCost').value) || 0;
+            const selling = parseFloat(document.getElementById('prodSelling').value) || 0;
+            const markupType = document.getElementById('markupType').value;
+
+            if (markupType === 'amount') {
+                document.getElementById('markupValue').value = Math.max(0, selling - cost).toFixed(2);
+            } else {
+                if (cost > 0) {
+                    const percent = ((selling - cost) / cost) * 100;
+                    document.getElementById('markupValue').value = Math.max(0, percent).toFixed(1);
+                }
+            }
+        }
+
+        // Product CRUD Handlers
+        function handleSaveProduct(e) {
+            e.preventDefault();
+            const id = document.getElementById('productId').value;
+            const name = document.getElementById('prodName').value.trim();
+            const category = document.getElementById('prodCategory').value;
+            const stock = parseInt(document.getElementById('prodStock').value) || 0;
+            const costPrice = parseFloat(document.getElementById('prodCost').value) || 0;
+            const sellingPrice = parseFloat(document.getElementById('prodSelling').value) || 0;
+
+            if (id) {
+                // Edit existing
+                const index = products.findIndex(p => p.id === id);
+                if (index !== -1) {
+                    products[index] = { ...products[index], name, category, stock, costPrice, sellingPrice };
+                    showToast('Product updated successfully!');
+                }
+            } else {
+                // New product
+                const newProd = {
+                    id: Date.now().toString(),
+                    name,
+                    category,
+                    stock,
+                    costPrice,
+                    sellingPrice
+                };
+                products.push(newProd);
+                showToast('New product procured & added to catalog!');
+            }
+
+            saveState();
+            closeModal('productModal');
+            refreshUI();
+        }
+
+        function openEditProductModal(id) {
+            const prod = products.find(p => p.id === id);
+            if (!prod) return;
+
+            document.getElementById('productModalTitle').innerText = 'Edit Product & Pricing';
+            document.getElementById('productId').value = prod.id;
+            document.getElementById('prodName').value = prod.name;
+            document.getElementById('prodCategory').value = prod.category;
+            document.getElementById('prodStock').value = prod.stock;
+            document.getElementById('prodCost').value = prod.costPrice;
+            document.getElementById('markupType').value = 'amount';
+            document.getElementById('markupValue').value = (prod.sellingPrice - prod.costPrice).toFixed(2);
+            document.getElementById('prodSelling').value = prod.sellingPrice;
+
+            openModal('productModal');
+        }
+
+        function deleteProduct(id) {
+            if (confirm("Are you sure you want to remove this product from inventory?")) {
+                products = products.filter(p => p.id !== id);
+                saveState();
+                refreshUI();
+                showToast('Product deleted');
+            }
+        }
+
+        // Restock Handler
+        function openRestockModal(id) {
+            const prod = products.find(p => p.id === id);
+            if (!prod) return;
+
+            document.getElementById('restockProductId').value = prod.id;
+            document.getElementById('restockProdName').innerText = prod.name;
+            document.getElementById('restockQty').value = '';
+            openModal('restockModal');
+        }
+
+        function handleSaveRestock(e) {
+            e.preventDefault();
+            const id = document.getElementById('restockProductId').value;
+            const qty = parseInt(document.getElementById('restockQty').value) || 0;
+
+            const prod = products.find(p => p.id === id);
+            if (prod && qty > 0) {
+                prod.stock += qty;
+                saveState();
+                closeModal('restockModal');
+                refreshUI();
+                showToast(`Added +${qty} stock to ${prod.name}`);
+            }
+        }
+
+        // Quick Sales / Waste Log Handler
+        function populateLogProductSelect(selectedId = null) {
+            const select = document.getElementById('logProductId');
+            select.innerHTML = products.map(p => `
+                <option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>
+                    ${escapeHtml(p.name)} (${p.stock} left in stock)
+                </option>
+            `).join('');
+
+            updateLogModalMaxStock();
+        }
+
+        function updateLogModalMaxStock() {
+            const id = document.getElementById('logProductId').value;
+            const prod = products.find(p => p.id === id);
+            const hint = document.getElementById('logStockHint');
+            const qtyInput = document.getElementById('logQty');
+
+            if (prod) {
+                hint.innerText = `Max available stock: ${prod.stock} units`;
+                qtyInput.max = prod.stock;
+            } else {
+                hint.innerText = 'No product selected';
+            }
+        }
+
+        function openQuickLogForProduct(id) {
+            populateLogProductSelect(id);
+            openModal('quickLogModal');
+        }
+
+        function handleSaveLog(e) {
+            e.preventDefault();
+            const prodId = document.getElementById('logProductId').value;
+            const type = document.getElementById('logType').value;
+            const qty = parseInt(document.getElementById('logQty').value) || 0;
+
+            const prod = products.find(p => p.id === prodId);
+            if (!prod) return;
+
+            if (qty > prod.stock) {
+                alert(`Cannot log ${qty} items. Only ${prod.stock} remaining in stock!`);
+                return;
+            }
+
+            // Deduct stock
+            prod.stock -= qty;
+
+            // Add Log Record
+            const newLog = {
+                id: 'log_' + Date.now(),
+                productId: prod.id,
+                productName: prod.name,
+                category: prod.category,
+                type: type,
+                qty: qty,
+                costPrice: prod.costPrice,
+                sellingPrice: prod.sellingPrice,
+                timestamp: new Date().toISOString()
+            };
+
+            logs.unshift(newLog);
+            saveState();
+            closeModal('quickLogModal');
+            refreshUI();
+
+            const actionText = type === 'SOLD' ? 'Sale recorded' : 'Waste logged';
+            showToast(`${actionText} for ${qty}x ${prod.name}`);
+        }
+
+        function deleteLog(logId) {
+            const log = logs.find(l => l.id === logId);
+            if (!log) return;
+
+            // Reverse stock deduction if product still exists
+            const prod = products.find(p => p.id === log.productId);
+            if (prod) {
+                prod.stock += log.qty;
+            }
+
+            logs = logs.filter(l => l.id !== logId);
+            saveState();
+            refreshUI();
+            showToast('Log entry deleted & stock restored');
+        }
+
+        // Global Utility Functions
+        function refreshUI() {
+            renderDashboard();
+            renderProductsTable();
+            renderLogsTable();
+        }
+
+        function formatPHP(amount) {
+            return '₱' + Number(amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, function(m) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+            });
+        }
+
+        function openModal(modalId) {
+            if (modalId === 'productModal' && !document.getElementById('productId').value) {
+                // Reset form if opening fresh
+                document.getElementById('productModalTitle').innerText = 'Procure / Add New Product';
+                document.getElementById('productForm').reset();
+                document.getElementById('productId').value = '';
+            }
+            if (modalId === 'quickLogModal') {
+                populateLogProductSelect();
+            }
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

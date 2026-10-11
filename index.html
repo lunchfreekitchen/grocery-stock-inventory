@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Concessionaire POS & Multi-Location Sync</title>
+    <title>FlavorFlow POS - Concessionaire Multi-Location Sync</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js -->
@@ -77,11 +77,13 @@
     <div id="loginOverlay" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border border-slate-100 space-y-6">
             <div class="text-center space-y-2">
-                <div class="w-16 h-16 bg-sky-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold mx-auto shadow-lg shadow-sky-600/30">
-                    <i class="fa-solid fa-utensils"></i>
+                <!-- Brand Logo Display -->
+                <div id="loginLogoContainer" class="w-20 h-20 bg-sky-600 rounded-2xl flex items-center justify-center text-white text-3xl font-bold mx-auto shadow-lg shadow-sky-600/30 overflow-hidden">
+                    <i id="loginLogoFallback" class="fa-solid fa-utensils"></i>
+                    <img id="loginLogoImg" src="" alt="Brand Logo" class="w-full h-full object-cover hidden">
                 </div>
-                <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Food Concessionaire POS</h2>
-                <p class="text-xs text-slate-500 font-medium">BGC Taguig & MOA Pasay Operations</p>
+                <h2 id="loginBrandName" class="text-2xl font-extrabold text-slate-900 tracking-tight">LunchFree Kitchen</h2>
+                <p id="loginBrandTagline" class="text-xs text-slate-500 font-medium">BGC Taguig & MOA Pasay Operations</p>
             </div>
 
             <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
@@ -89,7 +91,7 @@
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Username</label>
                     <div class="relative">
                         <i class="fa-solid fa-user absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                        <input type="text" id="loginUsername" required placeholder="admin or cashier_bgc" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                        <input type="text" id="loginUsername" required placeholder="admin, cashier_bgc, cashier_moa" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-sky-500 focus:outline-none">
                     </div>
                 </div>
 
@@ -118,15 +120,16 @@
     <!-- MAIN SIDEBAR NAVIGATION -->
     <aside class="w-full md:w-64 bg-slate-900 text-slate-300 flex-shrink-0 flex flex-col justify-between border-r border-slate-800 no-print">
         <div>
-            <!-- Brand Info -->
+            <!-- Brand Info Header -->
             <div class="p-5 flex items-center justify-between border-b border-slate-800">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-sky-500/20">
-                        <i class="fa-solid fa-utensils"></i>
+                    <div id="sidebarLogoContainer" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-sky-500/20 overflow-hidden shrink-0">
+                        <i id="sidebarLogoFallback" class="fa-solid fa-utensils"></i>
+                        <img id="sidebarLogoImg" src="" alt="Logo" class="w-full h-full object-cover hidden">
                     </div>
-                    <div>
-                        <h1 class="font-extrabold text-white text-sm tracking-tight leading-none">FlavorFlow POS</h1>
-                        <span class="text-[10px] text-sky-400 font-semibold" id="sidebarUserRole">Concessionaire</span>
+                    <div class="min-w-0">
+                        <h1 id="sidebarBrandName" class="font-extrabold text-white text-sm tracking-tight leading-tight truncate">LunchFree Kitchen</h1>
+                        <span class="text-[10px] text-sky-400 font-semibold block truncate" id="sidebarUserRole">Concessionaire</span>
                     </div>
                 </div>
             </div>
@@ -169,6 +172,9 @@
                 <button onclick="switchTab('users')" id="nav-users" class="admin-only nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-xs transition-all text-slate-400 hover:bg-slate-800 hover:text-white">
                     <i class="fa-solid fa-users-gear w-4"></i> Cashier Accounts
                 </button>
+                <button onclick="switchTab('brandSettings')" id="nav-brandSettings" class="admin-only nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-xs transition-all text-slate-400 hover:bg-slate-800 hover:text-white">
+                    <i class="fa-solid fa-gear w-4"></i> Brand & Logo Settings
+                </button>
             </nav>
         </div>
 
@@ -204,7 +210,6 @@
                 <div class="bg-slate-100 p-1 rounded-xl flex items-center border border-slate-200">
                     <span class="px-2 font-bold text-slate-500 text-[11px]"><i class="fa-solid fa-clock text-sky-500"></i> Shift:</span>
                     <select id="appShiftSelect" onchange="handleLocationShiftChange()" class="bg-white px-2 py-1 rounded-lg font-bold text-slate-800 shadow-xs focus:outline-none border border-slate-200">
-                        <!-- JS populated based on location -->
                     </select>
                 </div>
             </div>
@@ -217,7 +222,6 @@
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     <!-- Left Column: Menu Items Selection Grid -->
                     <div class="lg:col-span-7 space-y-4">
-                        <!-- Category Header Tabs & Search -->
                         <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
                             <div class="relative flex-1">
                                 <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
@@ -244,7 +248,6 @@
 
                         <!-- Product Cards Grid -->
                         <div id="posGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                            <!-- JS Rendered -->
                         </div>
                     </div>
 
@@ -261,7 +264,6 @@
 
                             <!-- Cart Items List -->
                             <div id="posCartItems" class="space-y-2.5 max-h-72 overflow-y-auto custom-scrollbar pr-1">
-                                <!-- JS Rendered -->
                             </div>
                         </div>
 
@@ -297,7 +299,7 @@
                 </div>
             </section>
 
-            <!-- TAB 2: SHIFT MENU PLANNER (ADMIN ONLY) -->
+            <!-- TAB 2: SHIFT MENU PLANNER -->
             <section id="tab-menuPlanner" class="admin-only hidden space-y-6">
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
@@ -312,14 +314,12 @@
                         </div>
                     </div>
 
-                    <!-- Products Checklist Grid -->
                     <div id="plannerProductsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                        <!-- JS Populated -->
                     </div>
                 </div>
             </section>
 
-            <!-- TAB 3: PRODUCT MASTER LIST & PROCUREMENT -->
+            <!-- TAB 3: PRODUCT MASTER LIST -->
             <section id="tab-products" class="admin-only hidden space-y-6">
                 <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
                     <div class="flex flex-1 items-center gap-3">
@@ -344,7 +344,6 @@
                     </button>
                 </div>
 
-                <!-- Product Inventory Table -->
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
                     <div class="overflow-x-auto custom-scrollbar">
                         <table class="w-full text-left border-collapse">
@@ -360,16 +359,14 @@
                                 </tr>
                             </thead>
                             <tbody id="productsTableBody" class="divide-y divide-slate-100 text-xs font-medium">
-                                <!-- JS Populated -->
                             </tbody>
                         </table>
                     </div>
                 </div>
             </section>
 
-            <!-- TAB 4: FINANCIAL ANALYTICS & PROFIT -->
+            <!-- TAB 4: FINANCIAL ANALYTICS -->
             <section id="tab-dashboard" class="admin-only hidden space-y-6">
-                <!-- KPI Summary Cards -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-2">
                         <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Total Sales Revenue</span>
@@ -393,7 +390,6 @@
                     </div>
                 </div>
 
-                <!-- Charts Row -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
                         <h3 class="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Revenue Breakdown by Branch</h3>
@@ -440,14 +436,13 @@
                                 </tr>
                             </thead>
                             <tbody id="logsTableBody" class="divide-y divide-slate-100 text-xs font-medium">
-                                <!-- JS Populated -->
                             </tbody>
                         </table>
                     </div>
                 </div>
             </section>
 
-            <!-- TAB 6: CASHIER USER MANAGEMENT -->
+            <!-- TAB 6: CASHIER ACCOUNTS -->
             <section id="tab-users" class="admin-only hidden space-y-6">
                 <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
                     <div class="flex items-center justify-between pb-4 border-b border-slate-100">
@@ -471,10 +466,70 @@
                                 </tr>
                             </thead>
                             <tbody id="cashierTableBody" class="divide-y divide-slate-100 text-xs">
-                                <!-- JS Populated -->
                             </tbody>
                         </table>
                     </div>
+                </div>
+            </section>
+
+            <!-- TAB 7: BRAND & LOGO SETTINGS (ADMIN ONLY) -->
+            <section id="tab-brandSettings" class="admin-only hidden space-y-6">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs max-w-2xl space-y-6">
+                    <div class="pb-4 border-b border-slate-100">
+                        <h3 class="font-extrabold text-sm text-slate-900">Brand Identity & Receipt Customization</h3>
+                        <p class="text-xs text-slate-500">Upload your logo and update your concessionaire brand name. Changes sync across all cashier devices and printed receipts.</p>
+                    </div>
+
+                    <form onsubmit="handleSaveBrandSettings(event)" class="space-y-5">
+                        <!-- Brand Name -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Business / Concessionaire Brand Name</label>
+                            <input type="text" id="settingBrandName" required placeholder="LunchFree Kitchen / LFK Express" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-sky-500">
+                        </div>
+
+                        <!-- Brand Tagline -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tagline / Subtitle</label>
+                            <input type="text" id="settingBrandTagline" placeholder="Lutong Nanay, Sarap na Tunay!" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-sky-500">
+                        </div>
+
+                        <!-- Logo Upload Options -->
+                        <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+                            <h4 class="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Brand Logo Image</h4>
+
+                            <!-- Preview Container -->
+                            <div class="flex items-center gap-4">
+                                <div id="brandPreviewContainer" class="w-20 h-20 bg-sky-600 rounded-2xl flex items-center justify-center text-white text-3xl font-bold shadow-md overflow-hidden shrink-0">
+                                    <i id="brandPreviewFallback" class="fa-solid fa-utensils"></i>
+                                    <img id="brandPreviewImg" src="" alt="Preview Logo" class="w-full h-full object-cover hidden">
+                                </div>
+                                <div class="text-xs space-y-1">
+                                    <p class="font-bold text-slate-800">Logo Live Preview</p>
+                                    <p class="text-slate-500 text-[11px]">Will appear on POS header, login modal, and customer sales receipts.</p>
+                                    <button type="button" onclick="removeBrandLogo()" class="text-rose-600 font-bold hover:underline text-[11px]">Remove Custom Logo</button>
+                                </div>
+                            </div>
+
+                            <!-- Image URL or File Upload -->
+                            <div class="space-y-3 pt-2">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Option A: Upload Image File</label>
+                                    <input type="file" id="logoFileInput" accept="image/*" onchange="handleLogoFileUpload(event)" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100">
+                                </div>
+
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Option B: Image Web URL</label>
+                                    <input type="url" id="settingLogoUrl" oninput="handleLogoUrlInput(event)" placeholder="https://example.com/logo.png" class="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-2 flex justify-end">
+                            <button type="submit" class="px-6 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-extrabold rounded-xl text-xs shadow-md transition-all flex items-center gap-2">
+                                <i class="fa-solid fa-floppy-disk"></i> Save Brand Settings
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </section>
 
@@ -620,7 +675,7 @@
         </div>
     </div>
 
-    <!-- MODAL 4: PRINTABLE RECEIPT MODAL -->
+    <!-- MODAL 4: PRINTABLE RECEIPT WITH BRANDING LOGO -->
     <div id="receiptModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-2xl max-w-xs w-full shadow-2xl overflow-hidden flex flex-col">
             <div class="px-4 py-3 bg-slate-900 text-white flex items-center justify-between no-print">
@@ -630,19 +685,24 @@
                 </button>
             </div>
 
-            <!-- Receipt Layout -->
+            <!-- Receipt Thermal Print Format -->
             <div id="printableReceipt" class="p-5 bg-white text-slate-900 font-mono text-[11px] space-y-3">
-                <div class="text-center space-y-0.5">
-                    <h2 class="font-extrabold text-sm tracking-tight uppercase">CONCESSIONAIRE EXPRESS</h2>
-                    <p id="receiptBranchText" class="text-[10px] text-slate-600 uppercase font-bold">BGC TAGUIG BRANCH</p>
+                <div class="text-center space-y-1">
+                    <!-- Receipt Brand Logo -->
+                    <div id="receiptLogoContainer" class="w-12 h-12 bg-slate-900 rounded-xl mx-auto flex items-center justify-center text-white text-xl overflow-hidden mb-1">
+                        <i id="receiptLogoFallback" class="fa-solid fa-utensils"></i>
+                        <img id="receiptLogoImg" src="" alt="Brand Logo" class="w-full h-full object-cover hidden">
+                    </div>
+                    <h2 id="receiptBrandName" class="font-extrabold text-sm tracking-tight uppercase">LunchFree Kitchen</h2>
+                    <p id="receiptTagline" class="text-[9px] text-slate-500 italic">Lutong Nanay, Sarap na Tunay!</p>
+                    <p id="receiptBranchText" class="text-[10px] text-slate-700 uppercase font-bold pt-0.5">BGC TAGUIG BRANCH</p>
                     <p id="receiptShiftText" class="text-[9px] text-slate-500">Shift: Lunch</p>
-                    <p id="receiptDate" class="text-[9px] text-slate-400 pt-1">Date: --/--/----</p>
+                    <p id="receiptDate" class="text-[9px] text-slate-400">Date: --/--/----</p>
                 </div>
 
                 <div class="border-b border-dashed border-slate-400"></div>
 
                 <div id="receiptItemsList" class="space-y-1">
-                    <!-- JS populated -->
                 </div>
 
                 <div class="border-b border-dashed border-slate-400"></div>
@@ -685,16 +745,16 @@
         <span id="toastMsg" class="text-xs font-bold">Action successful</span>
     </div>
 
-    <!-- JAVASCRIPT APPLICATION LOGIC WITH REAL-TIME STORAGE -->
+    <!-- JAVASCRIPT LOGIC -->
     <script>
-        // Default System Users
+        // System Default Users
         const DEFAULT_USERS = [
             { username: 'admin', password: 'admin123', role: 'ADMIN', branch: 'ALL' },
             { username: 'cashier_bgc', password: '123456', role: 'CASHIER', branch: 'BGC' },
             { username: 'cashier_moa', password: '123456', role: 'CASHIER', branch: 'MOA' }
         ];
 
-        // Default Master Catalog
+        // Master Catalog Defaults
         const INITIAL_PRODUCTS = [
             { id: 'p1', name: 'Pork Adobo', category: 'Dishes', stock: 40, costPrice: 35.00, priceFull: 75.00, priceHalf: 45.00 },
             { id: 'p2', name: 'Chicken Inasal', category: 'Dishes', stock: 30, costPrice: 40.00, priceFull: 85.00, priceHalf: 50.00 },
@@ -706,14 +766,20 @@
             { id: 'p8', name: 'Piattos Cheese 85g', category: 'Retail', stock: 15, costPrice: 32.00, priceFull: 45.00, priceHalf: 45.00 }
         ];
 
-        // State Variables
+        // Application State
+        let brandSettings = {
+            name: "LunchFree Kitchen",
+            tagline: "Lutong Nanay, Sarap na Tunay!",
+            logoUrl: ""
+        };
+
         let currentUser = null;
         let activeLocation = 'BGC';
         let activeShift = 'Breakfast';
         let products = [];
         let logs = [];
         let cashierUsers = [];
-        let shiftMenus = {}; // Shift menu maps: e.g. { 'BGC_Breakfast': ['p1', 'p3', 'p6'] }
+        let shiftMenus = {};
         let posCart = [];
         let posActiveCategory = 'ALL';
 
@@ -722,17 +788,20 @@
 
         window.onload = function() {
             loadInitialState();
+            applyBrandSettingsUI();
             setupLocationShiftSelectors();
             setupCharts();
             checkSession();
         };
 
         function loadInitialState() {
+            const storedBrand = localStorage.getItem('conc_brand');
             const storedProds = localStorage.getItem('conc_products');
             const storedLogs = localStorage.getItem('conc_logs');
             const storedUsers = localStorage.getItem('conc_users');
             const storedMenus = localStorage.getItem('conc_menus');
 
+            if (storedBrand) brandSettings = JSON.parse(storedBrand);
             products = storedProds ? JSON.parse(storedProds) : [...INITIAL_PRODUCTS];
             logs = storedLogs ? JSON.parse(storedLogs) : [];
             cashierUsers = storedUsers ? JSON.parse(storedUsers) : [...DEFAULT_USERS];
@@ -750,10 +819,82 @@
         }
 
         function saveAllState() {
+            localStorage.setItem('conc_brand', JSON.stringify(brandSettings));
             localStorage.setItem('conc_products', JSON.stringify(products));
             localStorage.setItem('conc_logs', JSON.stringify(logs));
             localStorage.setItem('conc_users', JSON.stringify(cashierUsers));
             localStorage.setItem('conc_menus', JSON.stringify(shiftMenus));
+        }
+
+        function applyBrandSettingsUI() {
+            // Update Text Elements
+            document.getElementById('loginBrandName').innerText = brandSettings.name || 'LunchFree Kitchen';
+            document.getElementById('loginBrandTagline').innerText = brandSettings.tagline || 'BGC Taguig & MOA Pasay Operations';
+            document.getElementById('sidebarBrandName').innerText = brandSettings.name || 'LunchFree Kitchen';
+            
+            document.getElementById('receiptBrandName').innerText = brandSettings.name || 'LunchFree Kitchen';
+            document.getElementById('receiptTagline').innerText = brandSettings.tagline || '';
+
+            // Update Input Form Fields
+            document.getElementById('settingBrandName').value = brandSettings.name || '';
+            document.getElementById('settingBrandTagline').value = brandSettings.tagline || '';
+            document.getElementById('settingLogoUrl').value = brandSettings.logoUrl || '';
+
+            // Update Image Logos
+            updateLogoImageDisplay('loginLogoImg', 'loginLogoFallback', brandSettings.logoUrl);
+            updateLogoImageDisplay('sidebarLogoImg', 'sidebarLogoFallback', brandSettings.logoUrl);
+            updateLogoImageDisplay('receiptLogoImg', 'receiptLogoFallback', brandSettings.logoUrl);
+            updateLogoImageDisplay('brandPreviewImg', 'brandPreviewFallback', brandSettings.logoUrl);
+        }
+
+        function updateLogoImageDisplay(imgId, fallbackId, url) {
+            const img = document.getElementById(imgId);
+            const fallback = document.getElementById(fallbackId);
+            if (url && url.trim() !== '') {
+                img.src = url;
+                img.classList.remove('hidden');
+                fallback.classList.add('hidden');
+            } else {
+                img.src = '';
+                img.classList.add('hidden');
+                fallback.classList.remove('hidden');
+            }
+        }
+
+        function handleLogoFileUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    brandSettings.logoUrl = evt.target.result;
+                    document.getElementById('settingLogoUrl').value = '';
+                    applyBrandSettingsUI();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function handleLogoUrlInput(e) {
+            brandSettings.logoUrl = e.target.value.trim();
+            applyBrandSettingsUI();
+        }
+
+        function removeBrandLogo() {
+            brandSettings.logoUrl = '';
+            document.getElementById('logoFileInput').value = '';
+            document.getElementById('settingLogoUrl').value = '';
+            applyBrandSettingsUI();
+            showToast('Brand logo removed');
+        }
+
+        function handleSaveBrandSettings(e) {
+            e.preventDefault();
+            brandSettings.name = document.getElementById('settingBrandName').value.trim();
+            brandSettings.tagline = document.getElementById('settingBrandTagline').value.trim();
+
+            saveAllState();
+            applyBrandSettingsUI();
+            showToast('Brand identity updated successfully!');
         }
 
         function checkSession() {
@@ -778,7 +919,7 @@
                 localStorage.setItem('conc_active_session', JSON.stringify(currentUser));
                 document.getElementById('loginOverlay').classList.add('hidden');
                 initUserInterface();
-                showToast(`Welcome back, ${currentUser.username}!`);
+                showToast(`Welcome back to ${brandSettings.name}, ${currentUser.username}!`);
             } else {
                 alert('Invalid username or password.');
             }
@@ -795,7 +936,6 @@
             document.getElementById('displayBranch').innerText = currentUser.branch;
             document.getElementById('sidebarUserRole').innerText = currentUser.role;
 
-            // Restrict view if Cashier
             if (currentUser.role === 'CASHIER') {
                 document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
                 if (currentUser.branch !== 'ALL') {
@@ -838,7 +978,6 @@
             activeLocation = document.getElementById('appLocationSelect').value;
             const shiftSelect = document.getElementById('appShiftSelect');
             
-            // Check if current shift exists in location
             const validShifts = activeLocation === 'BGC' 
                 ? ['Breakfast', 'Lunch', 'Dinner'] 
                 : ['Lunch', 'Snacks', 'Dinner'];
@@ -893,7 +1032,6 @@
             const grid = document.getElementById('posGrid');
             const search = document.getElementById('posSearch').value.toLowerCase();
 
-            // Get enabled product IDs for current shift
             const shiftKey = `${activeLocation}_${activeShift}`;
             const enabledProdIds = shiftMenus[shiftKey] || [];
 
@@ -1046,7 +1184,6 @@
 
             const change = cash - grandTotal;
 
-            // Deduct Stocks & Record Log
             posCart.forEach(item => {
                 const prod = products.find(p => p.id === item.productId);
                 if (prod) {
@@ -1070,8 +1207,8 @@
 
             saveAllState();
 
-            // Populate Printable Receipt
-            document.getElementById('receiptBranchText').innerText = `${activeLocation} BRANCH`;
+            // Populate Thermal Receipt
+            document.getElementById('receiptBranchText').innerText = `${activeLocation} TAGUIG / PASAY BRANCH`;
             document.getElementById('receiptShiftText').innerText = `Shift: ${activeShift}`;
             document.getElementById('receiptDate').innerText = 'Date: ' + new Date().toLocaleString('en-PH');
             document.getElementById('receiptTotal').innerText = `₱${grandTotal.toFixed(2)}`;
@@ -1290,7 +1427,6 @@
             e.preventDefault();
             const prodId = document.getElementById('logProductId').value;
             const qty = parseFloat(document.getElementById('logQty').value) || 0;
-            const reason = document.getElementById('logReason').value;
 
             const prod = products.find(p => p.id === prodId);
             if (prod) {

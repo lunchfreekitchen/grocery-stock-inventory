@@ -21,14 +21,11 @@
 
   <!-- FIREBASE CONFIGURATION NEAR TOP OF FILE -->
   <script>
-    const firebaseConfig = {
-apiKey: "AIzaSyD-bzQ4K4SiSG0yfzH6aWQ6-x6BaWiaI7g",
-authDomain: "panalo-platter-fc-pos-a3573.firebaseapp.com",
-databaseURL: "https://panalo-platter-fc-pos-a3573-default-rtdb.asia-southeast1.firebasedatabase.app",
-projectId: "panalo-platter-fc-pos-a3573",
-storageBucket: "panalo-platter-fc-pos-a3573.firebasestorage.app",
-messagingSenderId: "88186543968",
-appId: "1:88186543968:web:5c2adb5084405c70b38805"
+    const DEFAULT_FIREBASE_CONFIG = {
+      apiKey: "YOUR_FIREBASE_API_KEY",
+      authDomain: "your-project-id.firebaseapp.com",
+      databaseURL: "https://your-project-id-default-rtdb.firebaseio.com",
+      projectId: "your-project-id"
     };
   </script>
 
@@ -37,14 +34,14 @@ appId: "1:88186543968:web:5c2adb5084405c70b38805"
     <header class="bg-blue-900 text-white shadow-md">
       <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
         <div class="flex items-center space-x-3">
-          <div class="bg-white p-1 rounded-lg">
+          <div class="bg-white px-2 py-1 rounded-lg flex items-center space-x-2">
             <span class="font-black text-blue-900 text-xl tracking-wider">PANALO PLATTER</span>
           </div>
-          <span class="text-xs bg-yellow-400 text-blue-950 px-2 py-0.5 rounded font-bold uppercase">Legit Winner!</span>
+          <span class="text-xs bg-yellow-400 text-blue-950 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Legit Winner!</span>
         </div>
-        <div id="connectionStatus" class="flex items-center space-x-2 text-xs bg-blue-950 px-3 py-1.5 rounded-full border border-blue-700">
-          <span class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></span>
-          <span class="font-medium">Local Storage Mode</span>
+        <div id="connectionStatus" class="flex items-center space-x-2 text-xs px-3 py-1.5 rounded-full border border-blue-700 bg-blue-950">
+          <span id="syncDot" class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></span>
+          <span id="syncText" class="font-medium">Local Storage Mode</span>
         </div>
       </div>
     </header>
@@ -53,26 +50,289 @@ appId: "1:88186543968:web:5c2adb5084405c70b38805"
       <!-- Clean Security Login Interface -->
       <div id="loginSection" class="max-w-md mx-auto my-12 bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
         <div class="text-center mb-6">
-          <h1 class="text-2xl font-black text-blue-900">Panalo Platter POS</h1>
-          <p class="text-sm text-gray-500 mt-1">Concessionaire Inventory & Sales Terminal</p>
+          <h1 class="text-2xl font-black text-blue-900 tracking-tight">Panalo Platter POS</h1>
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-widest mt-1">Food Concessionaire System</p>
         </div>
 
-        <form id="loginForm" class="space-y-4">
+        <div id="loginAlert" class="hidden mb-4 p-3 rounded-lg text-xs font-semibold bg-red-100 text-red-700 border border-red-200"></div>
+
+        <form id="loginForm" class="space-y-4" onsubmit="handleLogin(event)">
           <div>
             <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Username</label>
-            <input type="text" id="loginUsername" required class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-600 focus:outline-none">
+            <input type="text" id="loginUsername" required class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-600 focus:outline-none text-sm">
           </div>
           <div>
             <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Password</label>
-            <input type="password" id="loginPassword" required class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-600 focus:outline-none">
+            <input type="password" id="loginPassword" required class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-600 focus:outline-none text-sm">
           </div>
-          <button type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 rounded-lg shadow-md transition">
+          <button type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 rounded-lg shadow-md transition text-sm">
             Sign In to Terminal
           </button>
         </form>
       </div>
+
+      <!-- App Interface (Active after Login) -->
+      <div id="mainDashboard" class="hidden">
+        <!-- Top Toolbar -->
+        <div class="flex flex-wrap justify-between items-center gap-4 mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+          <div class="flex items-center space-x-3">
+            <div class="bg-blue-100 text-blue-800 p-2.5 rounded-lg">
+              <i class="fa-solid fa-user-shield text-xl"></i>
+            </div>
+            <div>
+              <h2 id="userWelcome" class="text-base font-bold text-gray-800">Welcome, Staff</h2>
+              <p id="userRoleBadge" class="text-xs text-blue-700 font-bold uppercase tracking-wide">Role: Admin</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3">
+            <button id="adminSettingsBtn" onclick="switchTab('settings')" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold border border-gray-300 transition">
+              <i class="fa-solid fa-gear mr-1"></i> Firebase Settings
+            </button>
+            <button onclick="handleLogout()" class="px-3 py-2 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-lg text-xs font-bold transition">
+              <i class="fa-solid fa-sign-out-alt mr-1"></i> Log Out
+            </button>
+          </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="flex space-x-2 border-b border-gray-200 mb-6 overflow-x-auto pb-1">
+          <button id="tabBtnPos" onclick="switchTab('pos')" class="tab-btn px-4 py-2.5 rounded-t-lg font-bold text-sm bg-blue-900 text-white border-b-2 border-blue-900 whitespace-nowrap">
+            <i class="fa-solid fa-cash-register mr-1.5"></i> POS Terminal
+          </button>
+          <button id="tabBtnInventory" onclick="switchTab('inventory')" class="tab-btn px-4 py-2.5 rounded-t-lg font-bold text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 whitespace-nowrap">
+            <i class="fa-solid fa-boxes-stacked mr-1.5"></i> Stock Inventory
+          </button>
+          <button id="tabBtnMenuPlanner" onclick="switchTab('menuPlanner')" class="tab-btn px-4 py-2.5 rounded-t-lg font-bold text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 whitespace-nowrap">
+            <i class="fa-solid fa-utensils mr-1.5"></i> Shift Menu Planner
+          </button>
+          <button id="tabBtnAnalytics" onclick="switchTab('analytics')" class="tab-btn px-4 py-2.5 rounded-t-lg font-bold text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 whitespace-nowrap">
+            <i class="fa-solid fa-chart-line mr-1.5"></i> Financial Analytics
+          </button>
+          <button id="tabBtnSettings" onclick="switchTab('settings')" class="tab-btn px-4 py-2.5 rounded-t-lg font-bold text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 whitespace-nowrap">
+            <i class="fa-solid fa-sliders mr-1.5"></i> Settings
+          </button>
+        </div>
+
+        <!-- TAB CONTENT: POS -->
+        <div id="tabPos" class="tab-content grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- POS Items Panel -->
+          <div class="lg:col-span-2 space-y-4">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-wrap justify-between items-center gap-3">
+              <div>
+                <h3 class="font-bold text-gray-800 text-sm">Location Active Shift</h3>
+                <p id="posActiveShiftLabel" class="text-xs text-blue-700 font-semibold">BGC (Taguig) — Lunch Shift</p>
+              </div>
+              <div class="flex space-x-2">
+                <button onclick="filterPosCategory('All')" class="px-3 py-1 bg-blue-900 text-white rounded text-xs font-bold">All</button>
+                <button onclick="filterPosCategory('Dishes')" class="px-3 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded text-xs font-bold">Dishes</button>
+                <button onclick="filterPosCategory('Rice')" class="px-3 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded text-xs font-bold">Rice</button>
+                <button onclick="filterPosCategory('Drinks')" class="px-3 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded text-xs font-bold">Drinks</button>
+              </div>
+            </div>
+
+            <!-- Dish Grid -->
+            <div id="posDishGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Cart & Checkout -->
+          <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between h-fit">
+            <div>
+              <div class="flex justify-between items-center border-b pb-3 mb-3">
+                <h3 class="font-black text-gray-800 text-base"><i class="fa-solid fa-cart-shopping text-blue-900 mr-2"></i> Current Order</h3>
+                <button onclick="clearCart()" class="text-xs text-red-600 font-bold hover:underline">Clear All</button>
+              </div>
+
+              <div id="cartItemsList" class="space-y-2 max-h-64 overflow-y-auto pr-1 text-xs">
+                <p class="text-gray-400 italic text-center py-6">No items added to cart yet.</p>
+              </div>
+            </div>
+
+            <div class="border-t pt-4 mt-6 space-y-3">
+              <div class="flex justify-between text-sm font-bold text-gray-700">
+                <span>Total Amount:</span>
+                <span id="cartTotalText" class="text-lg font-black text-blue-900">₱0.00</span>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">Cash Tendered (₱)</label>
+                <input type="number" id="cashTenderedInput" placeholder="0.00" oninput="calculateChange()" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-bold text-right focus:ring-2 focus:ring-blue-600 focus:outline-none">
+              </div>
+              <div class="flex justify-between text-xs font-bold text-gray-600">
+                <span>Change Due:</span>
+                <span id="cashChangeText" class="text-green-700 font-black">₱0.00</span>
+              </div>
+              <button onclick="processCheckout()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg shadow transition text-sm uppercase tracking-wide">
+                Complete Sale & Print Receipt
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT: INVENTORY -->
+        <div id="tabInventory" class="tab-content hidden space-y-4">
+          <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-gray-800 text-base mb-4"><i class="fa-solid fa-boxes-stacked text-blue-900 mr-2"></i> Central Stock Inventory</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="bg-gray-100 border-b border-gray-200 font-bold text-gray-700">
+                    <th class="p-2.5">Item Name</th>
+                    <th class="p-2.5">Category</th>
+                    <th class="p-2.5">Full Price</th>
+                    <th class="p-2.5">Half Price</th>
+                    <th class="p-2.5">Stock Remaining</th>
+                    <th class="p-2.5 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="inventoryTableBody" class="divide-y divide-gray-100">
+                  <!-- Rendered via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT: MENU PLANNER -->
+        <div id="tabMenuPlanner" class="tab-content hidden">
+          <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-gray-800 text-base mb-2"><i class="fa-solid fa-calendar-days text-blue-900 mr-2"></i> Location Shift Menu Setup</h3>
+            <p class="text-xs text-gray-500 mb-4">Configure available dishes for BGC Taguig (Breakfast, Lunch, Dinner) and MOA Pasay (Lunch, Snacks, Dinner).</p>
+            <div id="shiftMenuGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT: FINANCIAL ANALYTICS -->
+        <div id="tabAnalytics" class="tab-content hidden">
+          <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-gray-800 text-base mb-4"><i class="fa-solid fa-chart-pie text-blue-900 mr-2"></i> Sales Summary & KPIs</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl">
+                <span class="text-xs font-bold text-blue-800 uppercase">Gross Sales Today</span>
+                <h4 id="kpiGrossSales" class="text-xl font-black text-blue-950 mt-1">₱0.00</h4>
+              </div>
+              <div class="bg-green-50 border border-green-200 p-4 rounded-xl">
+                <span class="text-xs font-bold text-green-800 uppercase">Total Orders Fulfilled</span>
+                <h4 id="kpiTotalOrders" class="text-xl font-black text-green-950 mt-1">0</h4>
+              </div>
+              <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-xl">
+                <span class="text-xs font-bold text-yellow-800 uppercase">Active Locations</span>
+                <h4 class="text-xl font-black text-yellow-950 mt-1">BGC & MOA</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT: SETTINGS & FIREBASE CONFIG -->
+        <div id="tabSettings" class="tab-content hidden">
+          <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 max-w-2xl mx-auto">
+            <h3 class="font-bold text-gray-800 text-base mb-2"><i class="fa-solid fa-cloud text-blue-900 mr-2"></i> Firebase Cloud Sync Settings</h3>
+            <p class="text-xs text-gray-500 mb-6">Enter your Google Firebase Realtime Database parameters below to sync BGC & MOA terminals in real time.</p>
+            
+            <form onsubmit="saveFirebaseSettings(event)" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">API Key (apiKey)</label>
+                <input type="text" id="cfgApiKey" placeholder="AIzaSy..." class="w-full px-3 py-2 border border-gray-300 rounded text-xs font-mono">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Auth Domain (authDomain)</label>
+                <input type="text" id="cfgAuthDomain" placeholder="project-id.firebaseapp.com" class="w-full px-3 py-2 border border-gray-300 rounded text-xs font-mono">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Database URL (databaseURL)</label>
+                <input type="text" id="cfgDbUrl" placeholder="https://project-id-default-rtdb.firebaseio.com" class="w-full px-3 py-2 border border-gray-300 rounded text-xs font-mono">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Project ID (projectId)</label>
+                <input type="text" id="cfgProjectId" placeholder="project-id" class="w-full px-3 py-2 border border-gray-300 rounded text-xs font-mono">
+              </div>
+
+              <div class="pt-2 flex justify-between items-center">
+                <button type="submit" class="bg-blue-900 hover:bg-blue-950 text-white font-bold px-5 py-2.5 rounded-lg text-xs shadow transition">
+                  Save & Connect Firebase
+                </button>
+                <button type="button" onclick="clearFirebaseSettings()" class="text-xs text-red-600 font-bold hover:underline">
+                  Disconnect & Reset
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 
-</body>
-</html>
+  <!-- Thermal Receipt Printable Modal Template -->
+  <div id="printableReceipt" class="hidden p-4 bg-white text-black font-mono text-xs w-64 mx-auto">
+    <div class="text-center mb-2 border-b pb-2">
+      <h2 class="font-black text-sm uppercase">PANALO PLATTER</h2>
+      <p class="text-xxs font-bold uppercase">Legit Winner!</p>
+      <p id="rcptLocation" class="text-xxs">BGC Taguig Branch</p>
+      <p id="rcptDate" class="text-xxs">Date: --/--/----</p>
+    </div>
+    <div id="rcptItems" class="space-y-1 mb-2 border-b pb-2">
+      <!-- Items dynamically added -->
+    </div>
+    <div class="space-y-0.5 text-right font-bold">
+      <p>TOTAL: <span id="rcptTotal">₱0.00</span></p>
+      <p>CASH: <span id="rcptCash">₱0.00</span></p>
+      <p>CHANGE: <span id="rcptChange">₱0.00</span></p>
+    </div>
+    <div class="text-center mt-3 pt-2 border-t text-xxs">
+      <p>Salamat sa Pagtangkilik!</p>
+      <p>Panalo Platter - LEGIT WINNER!</p>
+    </div>
+  </div>
+
+  <script>
+    // System Users
+    const DEFAULT_USERS = {
+      "admin": { password: "admin123", role: "Admin", location: "All Locations", name: "Administrator" },
+      "cashier_bgc": { password: "123456", role: "Cashier", location: "BGC (Taguig)", name: "BGC Cashier" },
+      "cashier_moa": { password: "123456", role: "Cashier", location: "MOA (Pasay)", name: "MOA Cashier" }
+    };
+
+    // Default Products
+    const INITIAL_PRODUCTS = [
+      { id: "p1", name: "Pork Pork Adobo", category: "Dishes", fullPrice: 120, halfPrice: 65, stock: 40 },
+      { id: "p2", name: "Chicken Inasal", category: "Dishes", fullPrice: 130, halfPrice: 70, stock: 35 },
+      { id: "p3", name: "Beef Caldereta", category: "Dishes", fullPrice: 150, halfPrice: 80, stock: 30 },
+      { id: "p4", name: "Pancit Canton", category: "Dishes", fullPrice: 90, halfPrice: 50, stock: 50 },
+      { id: "p5", name: "Extra White Rice", category: "Rice", fullPrice: 20, halfPrice: 12, stock: 100 },
+      { id: "p6", name: "Iced Tea (16oz)", category: "Drinks", fullPrice: 35, halfPrice: 35, stock: 80 }
+    ];
+
+    let currentCart = [];
+    let products = JSON.parse(localStorage.getItem("pp_products")) || INITIAL_PRODUCTS;
+    let salesHistory = JSON.parse(localStorage.getItem("pp_sales")) || [];
+
+    function initAuth() {
+      if (!localStorage.getItem("pp_users")) {
+        localStorage.setItem("pp_users", JSON.stringify(DEFAULT_USERS));
+      }
+    }
+
+    function handleLogin(e) {
+      e.preventDefault();
+      initAuth();
+      const u = document.getElementById("loginUsername").value.trim().toLowerCase();
+      const p = document.getElementById("loginPassword").value.trim();
+      const alertBox = document.getElementById("loginAlert");
+
+      const users = JSON.parse(localStorage.getItem("pp_users")) || DEFAULT_USERS;
+
+      if (users[u] && users[u].password === p) {
+        const user = users[u];
+        sessionStorage.setItem("pp_session", JSON.stringify(user));
+        alertBox.classList.add("hidden");
+        showDashboard(user);
+      } else {
+        alertBox.textContent = "Invalid username or password. Please try again.";
+        alertBox.classList.remove("hidden");
+      }
+    }
+
+    function showDashboard(user) {
+      document.getElementById("loginSection").classList.add("hidden");

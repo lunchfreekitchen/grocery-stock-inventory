@@ -21,14 +21,14 @@
 
   <!-- FIREBASE CONFIGURATION NEAR TOP OF FILE -->
   <script>
-    const DEFAULT_FIREBASE_CONFIG = {
-      apiKey: "AIzaSyD-bzQ4K4SiSG0yfzH6aWQ6-x6BaWiaI7g",
-      authDomain: "panalo-platter-fc-pos-a3573.firebaseapp.com",
-      databaseURL: "https://panalo-platter-fc-pos-a3573-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "panalo-platter-fc-pos-a3573"
-      storageBucket: "panalo-platter-fc-pos-a3573.firebasestorage.app",
+    const firebaseConfig = {
+apiKey: "AIzaSyD-bzQ4K4SiSG0yfzH6aWQ6-x6BaWiaI7g",
+authDomain: "panalo-platter-fc-pos-a3573.firebaseapp.com",
+databaseURL: "https://panalo-platter-fc-pos-a3573-default-rtdb.asia-southeast1.firebasedatabase.app",
+projectId: "panalo-platter-fc-pos-a3573",
+storageBucket: "panalo-platter-fc-pos-a3573.firebasestorage.app",
 messagingSenderId: "88186543968",
-appId: "1:88186543968:web:5c2adb5084405c70b38805",
+appId: "1:88186543968:web:5c2adb5084405c70b38805"
     };
   </script>
 
@@ -37,14 +37,14 @@ appId: "1:88186543968:web:5c2adb5084405c70b38805",
     <header class="bg-blue-900 text-white shadow-md">
       <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
         <div class="flex items-center space-x-3">
-          <div class="bg-white px-2 py-1 rounded-lg">
+          <div class="bg-white p-1 rounded-lg">
             <span class="font-black text-blue-900 text-xl tracking-wider">PANALO PLATTER</span>
           </div>
           <span class="text-xs bg-yellow-400 text-blue-950 px-2 py-0.5 rounded font-bold uppercase">Legit Winner!</span>
         </div>
-        <div id="connectionStatus" class="flex items-center space-x-2 text-xs px-3 py-1.5 rounded-full border border-blue-700 bg-blue-950">
-          <span id="syncDot" class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></span>
-          <span id="syncText" class="font-medium">Local Storage Mode</span>
+        <div id="connectionStatus" class="flex items-center space-x-2 text-xs bg-blue-950 px-3 py-1.5 rounded-full border border-blue-700">
+          <span class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></span>
+          <span class="font-medium">Local Storage Mode</span>
         </div>
       </div>
     </header>
@@ -57,9 +57,7 @@ appId: "1:88186543968:web:5c2adb5084405c70b38805",
           <p class="text-sm text-gray-500 mt-1">Concessionaire Inventory & Sales Terminal</p>
         </div>
 
-        <div id="loginAlert" class="hidden mb-4 p-3 rounded-lg text-xs font-semibold bg-red-100 text-red-700 border border-red-200"></div>
-
-        <form id="loginForm" class="space-y-4" onsubmit="handleLogin(event)">
+        <form id="loginForm" class="space-y-4">
           <div>
             <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Username</label>
             <input type="text" id="loginUsername" required class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-600 focus:outline-none">
@@ -73,84 +71,8 @@ appId: "1:88186543968:web:5c2adb5084405c70b38805",
           </button>
         </form>
       </div>
-
-      <!-- App Interface (Hidden before Login) -->
-      <div id="mainDashboard" class="hidden">
-        <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-          <div>
-            <h2 id="userWelcome" class="text-lg font-bold text-gray-800">Welcome, Staff</h2>
-            <p id="userRoleBadge" class="text-xs text-blue-700 font-semibold uppercase">Role: Admin</p>
-          </div>
-          <button onclick="handleLogout()" class="px-4 py-2 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-lg text-sm font-bold transition">
-            <i class="fa-solid fa-sign-out-alt mr-1"></i> Log Out
-          </button>
-        </div>
-
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <h3 class="font-bold text-gray-700 text-base mb-2"><i class="fa-solid fa-circle-check text-green-500 mr-2"></i> POS Terminal Active</h3>
-          <p class="text-sm text-gray-600">You are logged into the central Panalo Platter system. Enter sales, view inventory, or configure Firebase in Settings.</p>
-        </div>
-      </div>
     </main>
   </div>
 
-  <script>
-    // System Users Setup
-    const DEFAULT_USERS = {
-      "admin": { password: "admin123", role: "Admin", location: "All Locations", name: "Administrator" },
-      "cashier_bgc": { password: "123456", role: "Cashier", location: "BGC (Taguig)", name: "BGC Cashier" },
-      "cashier_moa": { password: "123456", role: "Cashier", location: "MOA (Pasay)", name: "MOA Cashier" }
-    };
-
-    function initAuth() {
-      if (!localStorage.getItem("pp_users")) {
-        localStorage.setItem("pp_users", JSON.stringify(DEFAULT_USERS));
-      }
-    }
-
-    function handleLogin(e) {
-      e.preventDefault();
-      initAuth();
-      
-      const userVal = document.getElementById("loginUsername").value.trim().toLowerCase();
-      const passVal = document.getElementById("loginPassword").value.trim();
-      const alertBox = document.getElementById("loginAlert");
-
-      const users = JSON.parse(localStorage.getItem("pp_users")) || DEFAULT_USERS;
-
-      if (users[userVal] && users[userVal].password === passVal) {
-        const currentUser = users[userVal];
-        sessionStorage.setItem("pp_session", JSON.stringify(currentUser));
-        alertBox.classList.add("hidden");
-        showDashboard(currentUser);
-      } else {
-        alertBox.textContent = "Invalid username or password. Please try again.";
-        alertBox.classList.remove("hidden");
-      }
-    }
-
-    function showDashboard(user) {
-      document.getElementById("loginSection").classList.add("hidden");
-      document.getElementById("mainDashboard").classList.remove("hidden");
-      document.getElementById("userWelcome").textContent = `Welcome, ${user.name}`;
-      document.getElementById("userRoleBadge").textContent = `Role: ${user.role} | Location: ${user.location}`;
-    }
-
-    function handleLogout() {
-      sessionStorage.removeItem("pp_session");
-      document.getElementById("mainDashboard").classList.add("hidden");
-      document.getElementById("loginSection").classList.remove("hidden");
-      document.getElementById("loginForm").reset();
-    }
-
-    // Auto check active session on load
-    window.addEventListener("DOMContentLoaded", () => {
-      initAuth();
-      const activeSession = sessionStorage.getItem("pp_session");
-      if (activeSession) {
-        showDashboard(JSON.parse(activeSession));
-      }
-    });
-  </script>
 </body>
 </html>
